@@ -14,5 +14,12 @@ dependencies:
   logging: ^1.0.1
   sync: ^0.3.0
 
+dependency_overrides:
+  http:
+    git:
+      url: https://github.com/jpopesculian/dart-http.git
+      path: pkgs/http
+      ref: closeable-request
+
 dev_dependencies:
   test: ^1.17.11

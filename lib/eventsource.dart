@@ -46,6 +46,7 @@ class EventSource extends Stream<Event> {
 
   StreamController<Event> _streamController =
       new StreamController<Event>.broadcast();
+  http.StreamedResponse? _response;
 
   EventSourceReadyState _readyState = EventSourceReadyState.CLOSED;
 
@@ -100,16 +101,16 @@ class EventSource extends Stream<Event> {
     });
     request.body = _body;
 
-    var response = await client.send(request);
-    if (response.statusCode != 200) {
+    _response = await client.send(request);
+    if (_response!.statusCode != 200) {
       // server returned an error
-      var bodyBytes = await response.stream.toBytes();
-      String body = _encodingForHeaders(response.headers).decode(bodyBytes);
-      throw new EventSourceSubscriptionException(response.statusCode, body);
+      var bodyBytes = await _response!.stream.toBytes();
+      String body = _encodingForHeaders(_response!.headers).decode(bodyBytes);
+      throw new EventSourceSubscriptionException(_response!.statusCode, body);
     }
     _readyState = EventSourceReadyState.OPEN;
     // start streaming the data
-    response.stream.transform(_decoder).listen(
+    _response!.stream.transform(_decoder).listen(
         (Event event) {
           _streamController.add(event);
           _lastEventId = event.id;
@@ -128,7 +129,7 @@ class EventSource extends Stream<Event> {
   /// Retries until a new connection is established. Uses exponential backoff.
   Future _retry() async {
     Duration backoff = _retryDelay;
-    while (true) {
+    while (true && _readyState != EventSourceReadyState.CLOSED) {
       try {
         await _start();
         break;
@@ -142,6 +143,14 @@ class EventSource extends Stream<Event> {
 
   void _updateRetryDelay(Duration retry) {
     _retryDelay = retry;
+  }
+
+  Future<void> close() async {
+    _readyState = EventSourceReadyState.CLOSED;
+    _streamController.close();
+    if (_response != null) {
+      await _response!.close();
+    }
   }
 }
 
