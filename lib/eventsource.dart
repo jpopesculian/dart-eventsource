@@ -115,7 +115,10 @@ class EventSource extends Stream<Event> {
           _lastEventId = event.id;
         },
         cancelOnError: true,
-        onError: _retry,
+        onError: (err) {
+          _streamController.addError(err);
+          _retry();
+        },
         onDone: () {
           _readyState = EventSourceReadyState.CLOSED;
           _streamController.close();
@@ -123,19 +126,17 @@ class EventSource extends Stream<Event> {
   }
 
   /// Retries until a new connection is established. Uses exponential backoff.
-  Future _retry(dynamic e) async {
-    _readyState = EventSourceReadyState.CONNECTING;
-    // try reopening with exponential backoff
+  Future _retry() async {
     Duration backoff = _retryDelay;
     while (true) {
-      await new Future.delayed(backoff);
       try {
         await _start();
         break;
       } catch (error) {
         _streamController.addError(error);
-        backoff *= 2;
       }
+      await new Future.delayed(backoff);
+      backoff *= 2;
     }
   }
 
