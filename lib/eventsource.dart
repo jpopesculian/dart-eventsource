@@ -58,12 +58,12 @@ class EventSource extends Stream<Event> {
   String _method;
 
   /// Create a new EventSource by connecting to the specified url.
-  static Future<EventSource> connect(url,
+  factory EventSource(url,
       {http.Client? client,
       String? lastEventId,
       Map<String, String>? headers,
       String? body,
-      String? method}) async {
+      String? method}) {
     // parameter initialization
     url = url is Uri ? url : Uri.parse(url);
     client = client ?? new http.Client();
@@ -71,7 +71,7 @@ class EventSource extends Stream<Event> {
     method = method ?? "GET";
     EventSource es = new EventSource._internal(
         url, client, lastEventId, headers, body, method);
-    await es._start();
+    es._start();
     return es;
   }
 
