@@ -29,6 +29,15 @@ class EventSourceSubscriptionException extends Event implements Exception {
       : super(event: "error");
 }
 
+class EventSourceUnexpectedClose extends Event implements Exception {
+  String message;
+
+  @override
+  String get data => "$message";
+
+  EventSourceUnexpectedClose(this.message) : super(event: "error");
+}
+
 /// An EventSource client that exposes a [Stream] of [Event]s.
 class EventSource extends Stream<Event> {
   // interface attributes
@@ -121,8 +130,9 @@ class EventSource extends Stream<Event> {
           _retry();
         },
         onDone: () {
-          _readyState = EventSourceReadyState.CLOSED;
-          _streamController.close();
+          _streamController.addError(
+              EventSourceUnexpectedClose("Unexpected close received"));
+          _retry();
         });
   }
 
