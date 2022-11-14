@@ -121,18 +121,24 @@ class EventSource extends Stream<Event> {
     // start streaming the data
     _response!.stream.transform(_decoder).listen(
         (Event event) {
-          _streamController.add(event);
-          _lastEventId = event.id;
+          if (_readyState != EventSourceReadyState.CLOSED) {
+            _streamController.add(event);
+            _lastEventId = event.id;
+          }
         },
         cancelOnError: true,
         onError: (err) {
-          _streamController.addError(err);
-          _retry();
+          if (_readyState != EventSourceReadyState.CLOSED) {
+            _streamController.addError(err);
+            _retry();
+          }
         },
         onDone: () {
-          _streamController.addError(
-              EventSourceUnexpectedClose("Unexpected close received"));
-          _retry();
+          if (_readyState != EventSourceReadyState.CLOSED) {
+            _streamController.addError(
+                EventSourceUnexpectedClose("Unexpected close received"));
+            _retry();
+          }
         });
   }
 
